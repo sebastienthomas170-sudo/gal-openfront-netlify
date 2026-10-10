@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GAL - OpenFront</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        button, a, .rank-row, .member-card, .period-tab {
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: manipulation;
+            outline: none;
+        }
+        input { -webkit-tap-highlight-color: transparent; }
+        a.btn-feature { display: block; text-decoration: none; }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #05050a;
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse at 20% 30%, rgba(20, 40, 80, 0.35) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 70%, rgba(30, 20, 60, 0.25) 0%, transparent 50%),
+                linear-gradient(180deg, #05050a 0%, #0a0a14 100%);
+            z-index: -1;
+        }
+        .screen {
+            position: absolute;
+            width: 100%;
+            max-width: 480px;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 1.2rem;
+            opacity: 0;
+            visibility: hidden;
+            transform: scale(0.96);
+            transition: opacity 0.45s ease, transform 0.45s ease, visibility 0.45s;
+            pointer-events: none;
+            max-height: 96vh;
+            overflow-y: auto;
+        }
+        /* centrage vertical sans couper le haut quand le contenu dépasse */
+        .screen::before, .screen::after { content: ''; margin: auto; }
+        .screen, .members-list { scrollbar-width: none; -ms-overflow-style: none; }
+        .screen::-webkit-scrollbar, .members-list::-webkit-scrollbar { display: none; width: 0; height: 0; }
+        .screen.active {
+            opacity: 1;
+            visibility: visible;
+            transform: scale(1);
+            pointer-events: auto;
+        }
+        .screen.blur-out {
+            filter: blur(12px);
+            opacity: 0;
+            transform: scale(0.94);
+        }
+        .home-title { text-align: center; }
+        .home-title h1 {
+            font-size: 2.6rem;
+            font-weight: 700;
+            letter-spacing: 0.25em;
+            color: #f0e6c8;
+            text-shadow: 0 0 30px rgba(212, 175, 55, 0.25);
+        }
+        .home-title span {
+            display: block;
+            font-size: 0.95rem;
+            letter-spacing: 0.35em;
+            color: rgba(200, 190, 160, 0.55);
+            margin-top: 0.35rem;
+            text-transform: uppercase;
+        }
+        .home-subtitle {
+            font-size: 0.85rem;
+            color: rgba(180, 170, 150, 0.45);
+            letter-spacing: 0.12em;
+            text-align: center;
+        }
+        .features {
+            display: flex;
+            flex-direction: column;
+            gap: 0.9rem;
+            width: 100%;
+            max-width: 300px;
+        }
+        .btn-feature, .btn {
+            background: linear-gradient(145deg, #0f0f1a, #1a1a2e);
+            border: 1px solid rgba(212, 175, 55, 0.4);
+            color: #f0e6c8;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            padding: 1rem 1.8rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.28s ease;
+            text-align: center;
+        }
+        .btn-feature { font-size: 1.1rem; }
+        .btn-feature:hover, .btn:hover {
+            border-color: rgba(212, 175, 55, 0.85);
+            color: #fff8e7;
+            box-shadow: 0 0 26px rgba(212, 175, 55, 0.25);
+            transform: translateY(-2px);
+        }
+        .btn.back {
+            border-color: rgba(140, 140, 160, 0.35);
+            color: #b0b0c0;
+            font-size: 0.9rem;
+        }
+        .btn.back:hover {
+            border-color: rgba(180, 180, 200, 0.6);
+            color: #e0e0e8;
+        }
+        .btn.small {
+            font-size: 0.75rem;
+            padding: 0.5rem 1rem;
+            align-self: flex-start;
+            letter-spacing: 0.1em;
+        }
+        .btn.more {
+            font-size: 0.85rem;
+            padding: 0.75rem 1.4rem;
+            max-width: 220px;
+        }
+        .top-actions {
+            display: flex;
+            gap: 0.6rem;
+            width: 100%;
+            max-width: 380px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .top-actions .btn {
+            font-size: 0.75rem;
+            padding: 0.55rem 0.85rem;
+            flex: 1;
+            max-width: 130px;
+        }
+        .top-actions.hidden { display: none; }
+        .btn.danger {
+            border-color: rgba(200, 80, 80, 0.45);
+            color: #f0a0a0;
+            font-size: 0.8rem;
+            padding: 0.55rem 1rem;
+        }
+        .btn.danger:hover {
+            border-color: rgba(220, 100, 100, 0.8);
+            color: #ffc0c0;
+            box-shadow: 0 0 18px rgba(200, 80, 80, 0.2);
+        }
+        .search-input {
+            width: 100%;
+            max-width: 320px;
+            background: rgba(12, 12, 22, 0.9);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            color: #f0e6c8;
+            font-size: 1.1rem;
+            padding: 0.9rem 1.15rem;
+            border-radius: 4px;
+            outline: none;
+            text-align: center;
+        }
+        .search-input:focus {
+            border-color: rgba(212, 175, 55, 0.7);
+            box-shadow: 0 0 18px rgba(212, 175, 55, 0.15);
+        }
+        .search-input.sm {
+            font-size: 0.95rem;
+            padding: 0.7rem 1rem;
+            max-width: 100%;
+        }
+        .period-tabs {
+            display: flex;
+            flex-direction: column;
+            gap: 0.9rem;
+            width: 100%;
+            max-width: 300px;
+        }
+        .period-tab {
+            flex: none;
+            background: rgba(15, 15, 26, 0.9);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            color: rgba(200, 190, 160, 0.7);
+            font-size: 1.1rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            padding: 1rem 1.8rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.25s;
+        }
+        .period-tab.active {
+            border-color: rgba(212, 175, 55, 0.85);
+            color: #f0e6c8;
+            box-shadow: 0 0 16px rgba(212, 175, 55, 0.2);
+        }
+        .period-tab:hover { border-color: rgba(212, 175, 55, 0.6); color: #fff; }
+        .section-title {
+            font-size: 0.8rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: rgba(200, 190, 160, 0.55);
+            text-align: center;
+        }
+        .rank-list {
+            width: 100%;
+            max-width: 380px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+            max-height: 44vh;
+            overflow-y: auto;
+            padding: 2px;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .rank-list::-webkit-scrollbar { display: none; width: 0; height: 0; }
+        .rank-list > .rank-row { flex-shrink: 0; }
+        .rank-row.pinned {
+            position: sticky;
+            top: 0;
+            z-index: 3;
+            background: #101b34;
+        }
+        .rank-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: rgba(12, 12, 22, 0.75);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 5px;
+            padding: 0.7rem 0.9rem;
+        }
+        .rank-num {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: rgba(212, 175, 55, 0.9);
+            min-width: 1.8rem;
+            text-align: center;
+        }
+        .rank-num.gold { color: #ffd700; }
+        .rank-num.silver { color: #c0c0c0; }
+        .rank-num.bronze { color: #cd7f32; }
+        .rank-name {
+            flex: 1;
+            font-weight: 600;
+            color: #f0e6c8;
+            word-break: break-all;
+            font-size: 0.95rem;
+        }
+        .rank-stat {
+            font-size: 0.8rem;
+            color: rgba(200, 190, 160, 0.65);
+            text-align: right;
+            white-space: nowrap;
+        }
+        .rank-stat strong { color: #e8dcc0; }
+        .loading, .error-msg, .hint {
+            text-align: center;
+            font-size: 0.9rem;
+            padding: 0.5rem;
+        }
+        .loading { color: rgba(200, 190, 160, 0.5); }
+        .error-msg { color: #f08080; line-height: 1.45; max-width: 340px; }
+        .hint {
+            font-size: 0.72rem;
+            color: rgba(180, 170, 150, 0.45);
+            line-height: 1.4;
+            max-width: 340px;
+        }
+        .loading::before {
+            content: '';
+            display: inline-block;
+            width: 0.9rem; height: 0.9rem;
+            margin-right: 0.55rem;
+            vertical-align: -0.12rem;
+            border: 2px solid rgba(212, 175, 55, 0.25);
+            border-top-color: rgba(212, 175, 55, 0.9);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes rowIn {
+            from { opacity: 0; transform: translateY(16px) scale(0.97); }
+            to { opacity: 1; transform: none; }
+        }
+        @keyframes shimmer {
+            0% { background-position: -300px 0; }
+            100% { background-position: 300px 0; }
+        }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: none; }
+        }
+        .rank-row { position: relative; overflow: hidden; }
+        .rank-row.enter { animation: rowIn 0.5s cubic-bezier(.2,.8,.2,1) both; animation-delay: var(--d, 0ms); }
+        .rank-row.skeleton {
+            height: 3.1rem;
+            background: linear-gradient(90deg, rgba(12,12,22,0.75) 0%, rgba(40,40,60,0.7) 50%, rgba(12,12,22,0.75) 100%);
+            background-size: 600px 100%;
+            animation: shimmer 1.2s linear infinite;
+        }
+        .rank-bar {
+            position: absolute; left: 0; bottom: 0; right: 0; height: 3px;
+            background: rgba(212, 175, 55, 0.08);
+        }
+        .rank-bar span {
+            display: block; height: 100%; width: 0;
+            background: linear-gradient(90deg, rgba(212,175,55,0.35), rgba(255,215,0,0.95));
+            transition: width 0.9s cubic-bezier(.2,.8,.2,1);
+        }
+        .rank-row:hover { border-color: rgba(212, 175, 55, 0.55); transform: translateX(3px); }
+        .rank-row { transition: border-color 0.25s, transform 0.25s; }
+        .period-tab:hover { transform: translateY(-2px); }
+        #topclan-title, .period-tabs { animation: fadeUp 0.45s ease both; }
+        .hint, .error-msg { animation: fadeUp 0.4s ease both; }
+
+        .priority-box {
+            width: 100%;
+            max-width: 380px;
+            background: rgba(20, 30, 50, 0.55);
+            border: 1px solid rgba(100, 160, 255, 0.35);
+            border-radius: 6px;
+            padding: 0.85rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+        .priority-box.hidden { display: none; }
+        .priority-label {
+            font-size: 0.72rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: rgba(140, 180, 255, 0.7);
+        }
+        .priority-row {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        .priority-row .search-input { flex: 1; text-align: left; }
+        .priority-active {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.6rem;
+            background: rgba(30, 50, 90, 0.4);
+            border-radius: 4px;
+            padding: 0.55rem 0.75rem;
+        }
+        .priority-active .pname {
+            font-weight: 600;
+            color: #a8c8ff;
+            word-break: break-all;
+            font-size: 0.95rem;
+        }
+        .priority-active .pmeta {
+            font-size: 0.75rem;
+            color: rgba(160, 180, 220, 0.6);
+        }
+        .rank-row.priority {
+            border-color: rgba(100, 160, 255, 0.55);
+            background: rgba(20, 35, 65, 0.85);
+            box-shadow: 0 0 14px rgba(80, 140, 255, 0.15);
+        }
+        .rank-row.priority .rank-num { color: #7ab0ff; min-width: 2.4rem; }
+        .rank-row.priority .rank-name { color: #c8dcff; }
+        .priority-badge {
+            font-size: 0.65rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #7ab0ff;
+            border: 1px solid rgba(100, 160, 255, 0.4);
+            border-radius: 3px;
+            padding: 0.15rem 0.4rem;
+            margin-left: 0.35rem;
+            vertical-align: middle;
+        }
+        .rank-bar.priority span {
+            background: linear-gradient(90deg, rgba(80,140,255,0.35), rgba(120,180,255,0.95));
+        }
+
+        .members-search-wrap {
+            width: 100%;
+            max-width: 380px;
+        }
+        .member-card {
+            width: 100%;
+            max-width: 380px;
+            background: rgba(12, 12, 22, 0.8);
+            border: 1px solid rgba(212, 175, 55, 0.25);
+            border-radius: 6px;
+            padding: 1rem 1.1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.55rem;
+            cursor: pointer;
+            transition: border-color 0.25s, transform 0.25s;
+        }
+        .member-card:hover {
+            border-color: rgba(212, 175, 55, 0.6);
+            transform: translateX(3px);
+        }
+        .member-card .mname {
+            font-weight: 600;
+            color: #f0e6c8;
+            font-size: 1.05rem;
+            word-break: break-all;
+        }
+        .member-card .mid {
+            font-size: 0.72rem;
+            color: rgba(160, 150, 130, 0.5);
+            word-break: break-all;
+        }
+        .member-card .mstats {
+            font-size: 0.82rem;
+            color: rgba(200, 190, 160, 0.7);
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .member-card .mstats strong { color: #e8dcc0; }
+        .member-detail {
+            width: 100%;
+            max-width: 380px;
+            background: rgba(10, 10, 20, 0.85);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 6px;
+            padding: 1.2rem 1.3rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.7rem;
+        }
+        .member-detail .d-name {
+            font-size: 1.35rem;
+            font-weight: 600;
+            color: #f0e6c8;
+            word-break: break-all;
+            text-align: center;
+        }
+        .member-detail .d-id {
+            font-size: 0.75rem;
+            color: rgba(160, 150, 130, 0.5);
+            text-align: center;
+            word-break: break-all;
+        }
+        .member-detail .d-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.4rem 0;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+            font-size: 0.9rem;
+        }
+        .member-detail .d-row:last-child { border-bottom: none; }
+        .member-detail .d-label { color: rgba(180, 170, 150, 0.55); }
+        .member-detail .d-value { color: #e8dcc0; font-weight: 600; }
+        .members-list {
+            width: 100%;
+            max-width: 380px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-height: 55vh;
+            overflow-y: auto;
+        }
+
+        .discord-btn {
+            position: fixed;
+            left: 1rem;
+            bottom: 1rem;
+            z-index: 100;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            background: linear-gradient(145deg, #5865F2, #4752C4);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.8rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            text-decoration: none;
+            padding: 0.65rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 18px rgba(88, 101, 242, 0.35);
+        }
+        .discord-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(88, 101, 242, 0.5);
+            color: #fff;
+        }
+        .discord-btn svg {
+            width: 1.15rem;
+            height: 1.15rem;
+            flex-shrink: 0;
+        }
+
+        .discord-btn.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(10px);
+        }
+        .info-body {
+            width: 100%;
+            max-width: 380px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.9rem;
+        }
+        .info-card {
+            background: rgba(10, 10, 20, 0.85);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 6px;
+            padding: 1rem 1.2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+            animation: fadeUp 0.45s ease both;
+        }
+        .info-card h3 {
+            font-size: 0.75rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: rgba(212, 175, 55, 0.85);
+            margin-bottom: 0.4rem;
+        }
+        .info-card .d-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 0.8rem;
+            padding: 0.35rem 0;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+            font-size: 0.88rem;
+        }
+        .info-card .d-row:last-child { border-bottom: none; }
+        .info-card .d-label { color: rgba(180, 170, 150, 0.6); }
+        .info-card .d-value {
+            color: #e8dcc0;
+            font-weight: 600;
+            text-align: right;
+            max-width: 62%;
+            word-break: break-word;
+        }
+
+        @media (max-width: 480px) {
+            .home-title h1 { font-size: 2.1rem; }
+            .screen { padding: 1.4rem; }
+            .discord-btn {
+                left: 0.7rem;
+                bottom: 0.7rem;
+                padding: 0.55rem 0.85rem;
+                font-size: 0.72rem;
+            }
+        }
+
+        /* Animation visible à chaque demande de vérification serveur */
+        .btn.refreshing { opacity: .9; pointer-events: none; }
+        .btn.refreshing::before {
+            content: '';
+            display: inline-block;
+            width: .8em; height: .8em;
+            margin-right: .55em;
+            border: 2px solid currentColor;
+            border-right-color: transparent;
+            border-radius: 50%;
+            vertical-align: -0.08em;
+            animation: gal-spin .7s linear infinite;
+        }
+        @keyframes gal-spin { to { transform: rotate(360deg); } }
+        #gal-refresh-countdown {
+            position: fixed;
+            left: 50%; bottom: max(10px, env(safe-area-inset-bottom));
+            transform: translateX(-50%);
+            z-index: 9999;
+            padding: .55rem .85rem;
+            border: 1px solid rgba(212,175,55,.38);
+            border-radius: 999px;
+            background: rgba(8,8,16,.92);
+            color: #d8c98f;
+            font-size: .72rem;
+            letter-spacing: .04em;
+            text-align: center;
+            box-shadow: 0 4px 18px rgba(0,0,0,.3);
+            white-space: nowrap;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .btn.refreshing::before { animation-duration: 1.8s; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <a class="discord-btn" id="discord-btn" href="https://discord.gg/jV4VyUPU5" target="_blank" rel="noopener noreferrer" title="Discord">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+        </svg>
+        Discord
+    </a>
+
+    <div id="screen-home" class="screen active">
+        <div class="home-title">
+            <h1>GAL</h1>
+            <span>OpenFront</span>
+        </div>
+        <p class="home-subtitle">Clan Interface</p>
+        <div class="features">
+            <a class="btn-feature" id="btn-play" href="https://openfront.io" target="_blank" rel="noopener noreferrer">Jouer</a>
+            <button class="btn-feature" id="btn-go-topclan">Top Clan</button>
+            <button class="btn-feature" id="btn-go-members">Members</button>
+            <button class="btn-feature" id="btn-go-claninfo">Info clan</button>
+        </div>
+    </div>
+
+    <div id="screen-topclan" class="screen">
+        <button class="btn back small" id="btn-back-topclan">Retour</button>
+        <div class="section-title" id="topclan-title">Contributeurs [GAL]</div>
+        <div class="period-tabs" id="period-tabs">
+            <button class="period-tab" data-period="all" id="tab-all">ALL</button>
+            <button class="period-tab" data-period="30d" id="tab-30d">30D</button>
+            <button class="period-tab" data-period="24h" id="tab-24h">24H</button>
+        </div>
+
+        <div class="priority-box hidden" id="priority-box">
+            <div class="priority-label">Joueur prioritaire</div>
+            <div id="priority-form">
+                <div class="priority-row">
+                    <input type="text" class="search-input sm" id="input-priority" placeholder="Pseudo ou ID" autocomplete="off" spellcheck="false">
+                    <button class="btn small" id="btn-add-priority" style="padding:0.55rem 0.9rem;flex-shrink:0;">Ajouter</button>
+                </div>
+            </div>
+            <div id="priority-active" class="priority-active" style="display:none;">
+                <div>
+                    <div class="pname" id="priority-name"></div>
+                    <div class="pmeta" id="priority-meta"></div>
+                </div>
+                <button class="btn danger" id="btn-remove-priority">Supprimer</button>
+            </div>
+        </div>
+
+        <div id="topclan-list" class="rank-list"></div>
+        <div class="top-actions hidden" id="top-actions">
+            <button class="btn" id="btn-refresh-top">Actualiser</button>
+        </div>
+        <p class="loading" id="topclan-loading" style="display:none;">Chargement…</p>
+        <p class="error-msg" id="topclan-error" style="display:none;"></p>
+        <button class="btn more" id="topclan-retry" style="display:none;">Réessayer</button>
+        <p class="hint" id="topclan-hint"></p>
+    </div>
+
+    <div id="screen-members" class="screen">
+        <button class="btn back small" id="btn-back-members">Retour</button>
+        <div class="section-title">Membres [GAL]</div>
+        <div class="members-search-wrap">
+            <input type="text" class="search-input sm" id="input-member-search" placeholder="Rechercher pseudo ou ID…" autocomplete="off" spellcheck="false">
+        </div>
+        <div id="members-list" class="members-list"></div>
+        <div class="top-actions"><button class="btn" id="btn-refresh-members">Actualiser</button></div>
+        <p class="loading" id="members-loading" style="display:none;">Chargement…</p>
+        <p class="error-msg" id="members-error" style="display:none;"></p>
+        <button class="btn more" id="members-retry" style="display:none;">Réessayer</button>
+        <p class="hint" id="members-hint"></p>
+    </div>
+
+    <div id="screen-clan-info" class="screen">
+        <button class="btn back small" id="btn-back-claninfo">Retour</button>
+        <div class="section-title">Info clan [GAL]</div>
+        <div id="claninfo-body" class="info-body"></div>
+        <div class="top-actions"><button class="btn" id="btn-refresh-claninfo">Actualiser</button></div>
+        <p class="loading" id="claninfo-loading" style="display:none;">Chargement…</p>
+        <p class="error-msg" id="claninfo-error" style="display:none;"></p>
+        <button class="btn more" id="claninfo-retry" style="display:none;">Réessayer</button>
+        <p class="hint" id="claninfo-hint"></p>
+    </div>
+
+    <div id="screen-member-detail" class="screen">
+        <button class="btn back small" id="btn-back-member-detail">Retour</button>
+        <div class="member-detail" id="member-detail-box">
+            <div class="d-name" id="md-name">—</div>
+            <div class="d-id" id="md-id">—</div>
+            <div class="d-row"><span class="d-label">Victoires</span><span class="d-value" id="md-wins">—</span></div>
+            <div class="d-row"><span class="d-label">Défaites</span><span class="d-value" id="md-losses">—</span></div>
+            <div class="d-row"><span class="d-label">Parties</span><span class="d-value" id="md-games">—</span></div>
+            <div class="d-row"><span class="d-label">Ratio</span><span class="d-value" id="md-rate">—</span></div>
+        </div>
+        <div class="top-actions"><button class="btn" id="btn-refresh-detail">Actualiser</button></div>
+        <p class="loading" id="md-loading" style="display:none;">Chargement des stats…</p>
+        <p class="error-msg" id="md-error" style="display:none;"></p>
+        <p class="hint" id="md-hint"></p>
+    </div>
+
+    <div id="gal-refresh-countdown" role="status" aria-live="polite">Prochain calcul serveur dans --:--</div>
+
+    <script>
+    (() => {
+        'use strict';
+        /* Le navigateur ne contacte JAMAIS OpenFront : il lit seulement le dernier calcul publié par le serveur. */
+        const SNAP_URL = '/.netlify/functions/snapshot';
+        const LS_SNAP = 'gal:v7:snapshot';
+        const LS_PRIO = 'gal:priority';
+        const POLL_MS = 60000;
+
+        const $ = (id) => document.getElementById(id);
+        const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        const screens = {
+            home: $('screen-home'), topclan: $('screen-topclan'), members: $('screen-members'),
+            'clan-info': $('screen-clan-info'), 'member-detail': $('screen-member-detail')
+        };
+
+        let currentScreen = 'home';
+        let topPeriod = 'all';
+        let topSelected = false;
+        let detailId = null;
+        let allPlayers = [];
+        let priorityPlayer = null;
+        let snap = null;          // dernier snapshot reçu du serveur
+        let netError = false;     // le serveur du site est injoignable
+        let serverStatus = null;  // état du calcul quand aucune donnée n'est encore prête
+        let lastFetch = 0;
+        const rendered = new Set();
+
+        /* ---------- utilitaires ---------- */
+        function ago(t) {
+            const ms = typeof t === 'number' ? t : Date.parse(t);
+            if (!ms) return '';
+            const m = Math.max(0, Math.round((Date.now() - ms) / 60000));
+            if (m < 1) return "à l'instant";
+            if (m < 60) return 'il y a ' + m + ' min';
+            const h = Math.round(m / 60);
+            if (h < 24) return 'il y a ' + h + ' h';
+            return 'il y a ' + Math.round(h / 24) + ' j';
+        }
+
+        function setState(prefix, mode, text) {
+            const loading = $(prefix + '-loading'), error = $(prefix + '-error'), retry = $(prefix + '-retry');
+            if (loading) { loading.style.display = mode === 'loading' ? 'block' : 'none'; if (mode === 'loading') loading.textContent = text; }
+            if (error) { error.style.display = mode === 'error' ? 'block' : 'none'; if (mode === 'error') error.textContent = text; }
+            if (retry) retry.style.display = mode === 'error' ? 'block' : 'none';
+        }
+
+        // Message à afficher tant qu'aucune donnée n'est disponible
+        function noData() {
+            if (netError) return { mode: 'error', text: 'Impossible de joindre le serveur du site. Réessaie dans un instant.' };
+            if (serverStatus && serverStatus.state === 'error') {
+                return { mode: 'error', text: 'Le dernier calcul a échoué' + (serverStatus.message ? ' : ' + serverStatus.message : '') + '. Nouvel essai automatique.' };
+            }
+            return { mode: 'loading', text: 'Le serveur prépare les données (premier calcul, quelques minutes)…' };
+        }
+
+        /* ---------- lecture du snapshot serveur ---------- */
+        try {
+            Object.keys(localStorage).filter((k) => k.indexOf('gal:v6:') === 0).forEach((k) => localStorage.removeItem(k));
+            const raw = localStorage.getItem(LS_SNAP);
+            if (raw) { const d = JSON.parse(raw); if (d && d.ready) snap = d; }
+        } catch (e) { /* stockage indisponible : pas grave */ }
+
+        async function loadSnapshot() {
+            try {
+                const response = await fetch(SNAP_URL + '?t=' + Date.now(), { cache: 'no-store', signal: AbortSignal.timeout(20000) });
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                const data = await response.json();
+                netError = false;
+                lastFetch = Date.now();
+                if (data && data.ready) {
+                    snap = data;
+                    try { localStorage.setItem(LS_SNAP, JSON.stringify(data)); } catch (e) { /* trop gros : on garde en mémoire */ }
+                } else {
+                    serverStatus = (data && data.status) || null;
+                }
+                renderCurrent();
+                return true;
+            } catch (e) {
+                netError = true;
+                renderCurrent();
+                return false;
+            }
+        }
+
+        /* ---------- pastille « prochain calcul » ---------- */
+        function updateCountdown() {
+            const label = $('gal-refresh-countdown');
+            if (!label) return;
+            const now = new Date();
+            const remaining = 600 - ((now.getMinutes() % 10) * 60 + now.getSeconds());
+            const mm = String(Math.floor(remaining / 60)).padStart(2, '0');
+            const ss = String(remaining % 60).padStart(2, '0');
+            const st = (snap && snap.status) || serverStatus;
+            const running = st && st.state === 'running' && st.startedAt && Date.now() - Date.parse(st.startedAt) < 12 * 60000;
+            let text = running ? 'Calcul serveur en cours…' : 'Prochain calcul dans ' + mm + ':' + ss;
+            if (snap && snap.generatedAt) text = 'Données ' + ago(snap.generatedAt) + ' · ' + text;
+            label.textContent = text;
+        }
+
+        async function animateRefreshButton(button, action) {
+            if (!button || button.classList.contains('refreshing')) return;
+            const originalText = button.textContent.trim();
+            button.classList.add('refreshing');
+            button.textContent = 'Vérification serveur…';
+            try { await action(); }
+            finally {
+                button.classList.remove('refreshing');
+                button.textContent = originalText || 'Actualiser';
+            }
+        }
+        const refreshAction = () => loadSnapshot();
+
+        /* ---------- navigation ---------- */
+        function switchScreen(to) {
+            const fromEl = screens[currentScreen];
+            const toEl = screens[to];
+            $('discord-btn').classList.toggle('hidden', to !== 'home');
+            fromEl.classList.add('blur-out');
+            setTimeout(() => {
+                fromEl.classList.remove('active', 'blur-out');
+                toEl.classList.add('active');
+                currentScreen = to;
+                if (to === 'topclan') showTopSelection();
+                else if (to === 'members') { $('input-member-search').value = ''; renderMembers(); }
+                else if (to === 'clan-info') renderClanInfo();
+                else if (to === 'member-detail') renderDetail();
+                toEl.scrollTop = 0;
+            }, 280);
+        }
+
+        function renderCurrent() {
+            updateCountdown();
+            if (currentScreen === 'topclan' && topSelected) renderTop();
+            else if (currentScreen === 'members') renderMembers();
+            else if (currentScreen === 'clan-info') renderClanInfo();
+            else if (currentScreen === 'member-detail') renderDetail();
+        }
+
+        $('btn-go-topclan').onclick = () => switchScreen('topclan');
+        $('btn-go-members').onclick = () => switchScreen('members');
+        $('btn-go-claninfo').onclick = () => switchScreen('clan-info');
+        $('btn-back-claninfo').onclick = () => switchScreen('home');
+        $('btn-back-members').onclick = () => switchScreen('home');
+        $('btn-back-member-detail').onclick = () => switchScreen('members');
+
+        /* ---------- Top clan ---------- */
+        function showTopSelection() {
+            topSelected = false;
+            $('topclan-title').textContent = 'Contributeurs [GAL]';
+            $('period-tabs').style.display = 'flex';
+            $('priority-box').classList.add('hidden');
+            $('top-actions').classList.add('hidden');
+            $('topclan-list').innerHTML = '';
+            setState('topclan', 'ok');
+            $('topclan-hint').textContent = '';
+            rendered.clear();
+            updatePriorityUI();
+        }
+
+        function openPeriod(period) {
+            topPeriod = period;
+            topSelected = true;
+            $('period-tabs').style.display = 'none';
+            $('topclan-title').textContent = 'Contributeurs [GAL] · ' + ({ '24h': '24H', '30d': '30D' }[period] || 'ALL');
+            $('priority-box').classList.remove('hidden');
+            $('top-actions').classList.remove('hidden');
+            updatePriorityUI();
+            rendered.clear();
+            $('topclan-list').scrollTop = 0;
+            renderTop();
+        }
+
+        document.querySelectorAll('.period-tab').forEach((tab) => {
+            tab.addEventListener('click', () => openPeriod(tab.dataset.period));
+        });
+        $('btn-back-topclan').onclick = () => { if (topSelected) showTopSelection(); else switchScreen('home'); };
+        $('btn-refresh-top').onclick = (event) => animateRefreshButton(event.currentTarget, refreshAction);
+        $('topclan-retry').onclick = (event) => animateRefreshButton(event.currentTarget, refreshAction);
+
+        function showSkeleton() {
+            $('topclan-list').innerHTML = Array.from({ length: 10 }, () => '<div class="rank-row skeleton"></div>').join('');
+        }
+
+        function renderTop() {
+            const rec = snap && snap.tops && snap.tops[topPeriod];
+            if (!rec || !Array.isArray(rec.players)) {
+                allPlayers = [];
+                showSkeleton();
+                if (!snap) { const s = noData(); setState('topclan', s.mode, s.text); }
+                else setState('topclan', 'loading', 'Le serveur calcule ce classement…');
+                $('topclan-hint').textContent = '';
+                return;
+            }
+            allPlayers = rec.players;
+            setState('topclan', 'ok');
+            if (!allPlayers.length) {
+                $('topclan-list').innerHTML = '';
+                setState('topclan', 'error', 'Aucun membre trouvé pour [GAL].');
+                $('topclan-retry').style.display = 'none';
+            } else renderPlayers();
+            let hint = rec.hint || '';
+            if (rec.partial) hint += ' · résultats partiels';
+            if (rec.stale) hint += ' · dernier calcul incomplet, résultats précédents conservés';
+            hint += ' · calculé ' + ago(rec.at || snap.generatedAt);
+            if (netError) hint += ' · serveur injoignable, données en mémoire';
+            $('topclan-hint').textContent = hint;
+        }
+
+        /* ---------- joueur prioritaire ---------- */
+        function loadPriority() {
+            try {
+                const o = JSON.parse(localStorage.getItem(LS_PRIO));
+                if (o && (o.publicId || o.username)) return o;
+            } catch (e) {}
+            return null;
+        }
+        function savePriority(p) {
+            try { if (p) localStorage.setItem(LS_PRIO, JSON.stringify(p)); else localStorage.removeItem(LS_PRIO); } catch (e) {}
+        }
+        priorityPlayer = loadPriority();
+
+        function updatePriorityUI() {
+            if (priorityPlayer) {
+                $('priority-form').style.display = 'none';
+                $('priority-active').style.display = 'flex';
+                $('priority-name').textContent = priorityPlayer.username || priorityPlayer.publicId;
+                $('priority-meta').textContent = priorityPlayer.publicId && priorityPlayer.username ? priorityPlayer.publicId : '';
+            } else {
+                $('priority-form').style.display = 'block';
+                $('priority-active').style.display = 'none';
+                $('input-priority').value = '';
+            }
+        }
+
+        function resolvePriority(query) {
+            const q = query.trim();
+            if (!q) return null;
+            const lower = q.toLowerCase();
+            const list = (snap && snap.members) || [];
+            const found = list.find((m) => (m.username || '').toLowerCase() === lower || (m.publicId || '').toLowerCase() === lower) ||
+                list.find((m) => (m.username || '').toLowerCase().indexOf(lower) !== -1);
+            if (found) return { publicId: found.publicId, username: found.username || found.publicId };
+            return { publicId: '', username: q }; // pas membre : affiché « Hors clan »
+        }
+
+        $('btn-add-priority').onclick = () => {
+            const p = resolvePriority($('input-priority').value);
+            if (!p) return;
+            priorityPlayer = p;
+            savePriority(p);
+            updatePriorityUI();
+            if (allPlayers.length) renderPlayers();
+        };
+        $('input-priority').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); $('btn-add-priority').click(); }
+        });
+        $('btn-remove-priority').onclick = () => {
+            priorityPlayer = null;
+            savePriority(null);
+            updatePriorityUI();
+            if (allPlayers.length) renderPlayers();
+        };
+
+        function isPriority(p) {
+            if (!priorityPlayer) return false;
+            const pid = (priorityPlayer.publicId || '').toLowerCase();
+            const pun = (priorityPlayer.username || '').toLowerCase();
+            const n = (p.name || '').toLowerCase();
+            const id = (p.publicId || '').toLowerCase();
+            return (pid && (id === pid || n === pid)) || (pun && n === pun);
+        }
+
+        function rankClass(i) { return i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''; }
+
+        function renderPlayers() {
+            const list = $('topclan-list');
+            const keepScroll = list.scrollTop;
+            const top = allPlayers;
+            const max = Math.max(...top.map((p) => p.value), 0.0001);
+            const pctOf = (p) => Math.max(4, Math.round((Math.max(p.value, 0) / max) * 100));
+
+            let prioHtml = '';
+            if (priorityPlayer && top.length) {
+                const idx = top.findIndex((p) => isPriority(p));
+                const prioKey = '__prio__' + (priorityPlayer.publicId || priorityPlayer.username);
+                const prioNew = !rendered.has(prioKey);
+                rendered.add(prioKey);
+                if (idx >= 0) {
+                    const p = top[idx];
+                    prioHtml = `
+                    <div class="rank-row priority pinned${prioNew ? ' enter' : ''}" style="--d:0ms">
+                        <span class="rank-num">#${idx + 1}</span>
+                        <span class="rank-name">${esc(p.name)}<span class="priority-badge">Prioritaire</span></span>
+                        <span class="rank-stat"><strong>${esc(p.main)}</strong><br>${esc(p.sub)}</span>
+                        <div class="rank-bar priority"><span data-w="${pctOf(p)}" style="width:${prioNew ? 0 : pctOf(p)}%"></span></div>
+                    </div>`;
+                } else {
+                    prioHtml = `
+                    <div class="rank-row priority pinned${prioNew ? ' enter' : ''}" style="--d:0ms">
+                        <span class="rank-num">—</span>
+                        <span class="rank-name">${esc(priorityPlayer.username || priorityPlayer.publicId)}<span class="priority-badge">Prioritaire</span></span>
+                        <span class="rank-stat"><strong>Hors clan</strong><br>pas membre de GAL</span>
+                        <div class="rank-bar priority"><span data-w="0" style="width:0%"></span></div>
+                    </div>`;
+                }
+            }
+
+            let newCount = 0;
+            list.innerHTML = prioHtml + top.map((p, i) => {
+                const isNew = !rendered.has(p.name);
+                const delay = isNew ? Math.min(newCount++, 10) * 60 : 0;
+                const prioClass = isPriority(p) ? ' priority' : '';
+                const pct = pctOf(p);
+                return `
+                <div class="rank-row${prioClass}${isNew ? ' enter' : ''}" style="--d:${delay}ms">
+                    <span class="rank-num ${rankClass(i)}">#${i + 1}</span>
+                    <span class="rank-name">${esc(p.name)}${prioClass ? '<span class="priority-badge">Prioritaire</span>' : ''}</span>
+                    <span class="rank-stat"><strong>${esc(p.main)}</strong><br>${esc(p.sub)}</span>
+                    <div class="rank-bar${prioClass}"><span data-w="${pct}" style="width:${isNew ? 0 : pct}%"></span></div>
+                </div>`;
+            }).join('');
+            list.scrollTop = keepScroll;
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+                list.querySelectorAll('.rank-bar span').forEach((el) => { el.style.width = el.dataset.w + '%'; });
+            }));
+            top.forEach((p) => rendered.add(p.name));
+        }
+
+        /* ---------- Membres ---------- */
+        function statsOf(m) {
+            const d = snap && snap.playerDetails && snap.playerDetails[m.publicId];
+            const wins = d ? d.wins : (m.wins || 0);
+            const losses = d ? d.losses : (m.losses || 0);
+            const games = wins + losses;
+            return { wins, losses, games, rate: games ? Math.round((wins / games) * 100) : 0 };
+        }
+
+        function renderMembers() {
+            const el = $('members-list');
+            if (!snap || !Array.isArray(snap.members)) {
+                el.innerHTML = '';
+                const s = noData();
+                setState('members', s.mode, s.text);
+                $('members-hint').textContent = '';
+                return;
+            }
+            setState('members', 'ok');
+            const q = $('input-member-search').value.trim().toLowerCase();
+            const list = !q ? snap.members : snap.members.filter((m) =>
+                (m.username || '').toLowerCase().indexOf(q) !== -1 || (m.publicId || '').toLowerCase().indexOf(q) !== -1);
+            if (!list.length) el.innerHTML = '<p class="hint">Aucun membre trouvé.</p>';
+            else {
+                el.innerHTML = list.map((m) => {
+                    const s = statsOf(m);
+                    return `
+                    <div class="member-card" data-id="${esc(m.publicId)}">
+                        <div class="mname">${esc(m.username || m.publicId)}</div>
+                        <div class="mid">${esc(m.publicId)}</div>
+                        <div class="mstats">
+                            <span><strong>${s.wins}</strong> V</span>
+                            <span><strong>${s.losses}</strong> D</span>
+                            <span><strong>${s.games}</strong> parties</span>
+                            <span>ratio <strong>${s.rate}%</strong></span>
+                        </div>
+                    </div>`;
+                }).join('');
+                el.querySelectorAll('.member-card').forEach((card) => { card.onclick = () => openMemberDetail(card.dataset.id); });
+            }
+            $('members-hint').textContent = snap.members.length + ' membres · mis à jour ' + ago(snap.membersAt || snap.generatedAt) +
+                (netError ? ' · serveur injoignable, données en mémoire' : '');
+        }
+        $('input-member-search').addEventListener('input', renderMembers);
+        $('members-retry').onclick = (event) => animateRefreshButton(event.currentTarget, refreshAction);
+        $('btn-refresh-members').onclick = (event) => animateRefreshButton(event.currentTarget, refreshAction);
+
+        /* ---------- Fiche membre ---------- */
+        function openMemberDetail(publicId) {
+            detailId = publicId;
+            switchScreen('member-detail');
+        }
+
+        function renderDetail() {
+            if (!detailId) return;
+            $('md-id').textContent = detailId;
+            const member = snap && (snap.members || []).find((m) => m.publicId === detailId);
+            if (!snap || !member) {
+                $('md-name').textContent = member ? member.username : '…';
+                ['md-wins', 'md-losses', 'md-games', 'md-rate'].forEach((x) => { $(x).textContent = '—'; });
+                const s = noData();
+                setState('md', snap ? 'error' : s.mode, snap ? 'Ce joueur ne fait plus partie de [GAL].' : s.text);
+                $('md-hint').textContent = '';
+                return;
+            }
+            const d = (snap.playerDetails && snap.playerDetails[detailId]) || null;
+            const s = statsOf(member);
+            $('md-name').textContent = (d && d.name) || member.username || detailId;
+            $('md-wins').textContent = s.wins;
+            $('md-losses').textContent = s.losses;
+            $('md-games').textContent = s.games;
+            $('md-rate').textContent = s.rate + ' %';
+            setState('md', 'ok');
+            $('md-hint').textContent = 'calculé sur le serveur · ' + ago(snap.generatedAt);
+        }
+        $('btn-refresh-detail').onclick = (event) => animateRefreshButton(event.currentTarget, refreshAction);
+
+        /* ---------- Info clan ---------- */
+        function renderClanInfo() {
+            const body = $('claninfo-body');
+            const info = snap && snap.claninfo;
+            if (!info || !Array.isArray(info.cards)) {
+                body.innerHTML = '';
+                if (!snap) { const s = noData(); setState('claninfo', s.mode, s.text); }
+                else setState('claninfo', 'loading', 'Le serveur prépare ces informations…');
+                $('claninfo-hint').textContent = '';
+                return;
+            }
+            setState('claninfo', 'ok');
+            body.innerHTML = info.cards.length ? info.cards.map((card) =>
+                '<div class="info-card"><h3>' + esc(card.title) + '</h3>' +
+                card.rows.map((r) => '<div class="d-row"><span class="d-label">' + esc(r[0]) +
+                    '</span><span class="d-value">' + esc(r[1]) + '</span></div>').join('') + '</div>').join('')
+                : '<p class="hint">Aucune information disponible.</p>';
+            $('claninfo-hint').textContent = 'mis à jour ' + ago(info.at || snap.generatedAt) + (netError ? ' · serveur injoignable, données en mémoire' : '');
+        }
+        $('claninfo-retry').onclick = (event) => animateRefreshButton(event.currentTarget, refreshAction);
+        $('btn-refresh-claninfo').onclick = (event) => animateRefreshButton(event.currentTarget, refreshAction);
+
+        /* ---------- démarrage ---------- */
+        updateCountdown();
+        setInterval(updateCountdown, 1000);
+        loadSnapshot();
+        setInterval(() => { if (!document.hidden) loadSnapshot(); }, POLL_MS);
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && Date.now() - lastFetch > 20000) loadSnapshot();
+        });
+    })();
+    </script>
+</body>
+</html>
