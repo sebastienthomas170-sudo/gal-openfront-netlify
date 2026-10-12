@@ -13,7 +13,7 @@ export function storageFor(store = blobs()) {
 }
 
 export function siteUrl() {
-  return (process.env.URL || process.env.DEPLOY_PRIME_URL || process.env.DEPLOY_URL || "").replace(/\/$/, "");
+  return "https://clan-gal.netlify.app";
 }
 
 // Demande au site de lancer le calcul en arrière-plan (la fonction répond 202 tout de suite).
